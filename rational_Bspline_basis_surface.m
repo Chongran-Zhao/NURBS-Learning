@@ -1,20 +1,19 @@
 %% Bspline basis surface
 clc;clear
-num_PP_u = 5;
-num_PP_v = 5;
+num_PP_u = 4;
+num_PP_v = 4;
 
-mesh_grid_x = 10 * num_PP_u + 1;
-mesh_grid_y = 10 * num_PP_v + 1;
+mesh_grid_x = 2 * num_PP_u + 1;
+mesh_grid_y = 2 * num_PP_v + 1;
 xx = linspace(0, 0.99, mesh_grid_x);
 yy = linspace(0, 0.99, mesh_grid_y);
 
 CC = zeros(3, mesh_grid_x, mesh_grid_y);
 
-order_u = 3;
-order_v = 3;
+order_u = 2;
+order_v = 2;
 
 uu = [0, 1];
-
 if (order_u >= 1)
     for ii = 1 : order_u
         uu = [0, uu];
@@ -47,12 +46,23 @@ for ii = 1 : num_PP_u
 end
 PP(3, 3, 3) = 2;
 
+% weights
+ww_u = zeros(1, num_PP_u);
+ww_v = zeros(1, num_PP_v);
+for ii = 1 : num_PP_u
+    ww_u(ii) = rand();
+end
+for ii = 1 : num_PP_v
+    ww_v(ii) = rand();
+end
+
 % Bspline
 for kk = 1 : mesh_grid_x
     for ll = 1 : mesh_grid_y
         for ii = 0 : num_PP_u-1
             for jj = 0 : num_PP_v-1
-                CC(:, kk, ll) = CC(:, kk, ll) + Bspline(ii, order_u, uu, xx(kk)) .* PP(:, ii+1, jj+1) .* Bspline(jj, order_v, vv, yy(ll));
+                CC(:, kk, ll) = CC(:, kk, ll) + Rational_Bspline(ii, order_u, uu, ww_u, xx(kk))...
+                    .* PP(:, ii+1, jj+1) .* Rational_Bspline(jj, order_v, vv, ww_v, yy(ll));
             end
         end
     end
@@ -69,6 +79,18 @@ for ii = 1 : num_PP_u
         scatter3(PP(1,ii,jj), PP(2,ii,jj), PP(3,ii,jj), 100, 'filled', 'MarkerFaceColor','cyan');
         hold on
     end
+end
+
+function RB = Rational_Bspline(ii, pp, uu, ww, xx)
+BB = 0.0;
+for jj = 0 : length(ww)-1
+    BB = BB + Bspline(jj, pp, uu, xx) .* ww(jj+1);
+end
+if (BB == 0)
+    RB = 0.0;
+else
+    RB = Bspline(ii, pp, uu, xx) .* ww(ii+1) ./ BB;
+end
 end
 
 function BB = Bspline(ii, pp, uu, xx)
